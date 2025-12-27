@@ -78,25 +78,31 @@ public class SharedVector {
 
     public void add(SharedVector other) {
         // TODO: add two vectors
-        if (length() != other.length()){
-            throw new IllegalArgumentException("vector length doesn't match - on add vectors");
+        try {
+            if (length() != other.length()){
+                throw new IllegalArgumentException("vector length doesn't match - on add vectors");
+            }
+            writeLock();
+            other.readLock();
+            for (int i = 0; i < vector.length; i++) {
+                this.vector[i] = this.vector[i] + other.vector[i];
+            }
+        } finally {
+            writeUnlock();
+            other.readUnlock();
         }
-        writeLock();
-        other.readLock();
-        for (int i = 0; i < vector.length; i++) {
-            this.vector[i] = this.get(i) + other.get(i);
-        }
-        writeUnlock();
-        other.readUnlock();
     }
 
     public void negate() {
         // TODO: negate vector
         writeLock();
-        for (int i = 0; i < vector.length; i++) {
-            this.vector[i] = this.get(i) * (-1);
+        try {
+            for (int i = 0; i < vector.length; i++) {
+                this.vector[i] = this.vector[i] * (-1);
+            }
+        } finally {
+            writeUnlock();
         }
-        writeUnlock();
     }
 
     public double dot(SharedVector other) {
@@ -110,11 +116,14 @@ public class SharedVector {
         readLock();
         other.readLock();
         double ans = 0;
-        for (int i = 0; i < length(); i++) {
-            ans += this.get(i) * other.get(i);
+        try {
+            for (int i = 0; i < length(); i++) {
+                ans += this.vector[i] * other.vector[i];
+            }
+        } finally {
+            readUnlock();
+            other.readUnlock();
         }
-        readUnlock();
-        other.readUnlock();
         return ans;
     }
 
