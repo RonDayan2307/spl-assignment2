@@ -110,13 +110,10 @@ public class SharedMatrix {
 
     public SharedVector get(int index) {
         // TODO: return vector at index
-        acquireAllVectorReadLocks(this.vectors);
         try {
             SharedVector ans = this.vectors[index];
-            releaseAllVectorReadLocks(this.vectors);
             return ans;
         } catch (Exception exp) {
-            releaseAllVectorReadLocks(this.vectors);
             throw exp;
         }
         // catches any exception and prints its message

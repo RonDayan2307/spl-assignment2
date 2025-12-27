@@ -130,8 +130,30 @@ public class SharedVector {
     public void vecMatMul(SharedMatrix matrix) {
         // TODO: compute row-vector × matrix
         writeLock();
-        SharedVector column = matrix;
-        writeUnlock();
+        try {
+            if (getOrientation() != VectorOrientation.ROW_MAJOR) {
+                throw new IllegalArgumentException("not ROW dot COLUMN - on vecMatMul");
+            }
+            if (length() != matrix.get(0).length()){
+                throw new IllegalArgumentException("ROW length doesn't match COLUMN length - on vecMatMul");
+            }
 
+            SharedMatrix new_matrix = matrix;
+            if (matrix.getOrientation() != VectorOrientation.COLUMN_MAJOR){
+                double[][] rawData = matrix.readRowMajor();
+                new_matrix = new SharedMatrix();
+                new_matrix.loadColumnMajor(rawData);
+            }
+
+            SharedVector new_vec = new SharedVector(new double[new_matrix.length()], this.getOrientation());
+            for (int i = 0; i < new_vec.length(); i++) {
+                new_vec.vector[i] = this.dot(new_matrix.get(i));
+            }   
+            
+            this.vector = new_vec.vector;
+            this.orientation = new_vec.getOrientation();
+        } finally {
+            writeUnlock();
+        }  
     }
 }
