@@ -17,16 +17,15 @@ public class SharedVector {
     public double get(int index) {
         // TODO: return element at index (read-locked)
         readLock();
-        double ans = 0;
         try {
-            ans = this.vector[index];
+            double ans = this.vector[index];
             readUnlock();
             return ans;
         } catch (Exception exp) {
             readUnlock();
-            //prints the exception msg;
             throw exp;
         }
+        // catches any exception and prints its message
     }
 
     public int length() {
@@ -79,23 +78,31 @@ public class SharedVector {
 
     public void add(SharedVector other) {
         // TODO: add two vectors
-        if (length() != other.length()){
-            throw new IllegalArgumentException("vector length doesn't match - on add vectors");
+        try {
+            if (length() != other.length()){
+                throw new IllegalArgumentException("vector length doesn't match - on add vectors");
+            }
+            writeLock();
+            other.readLock();
+            for (int i = 0; i < vector.length; i++) {
+                this.vector[i] = this.vector[i] + other.vector[i];
+            }
+        } finally {
+            writeUnlock();
+            other.readUnlock();
         }
-        writeLock();
-        for (int i = 0; i < vector.length; i++) {
-            this.vector[i] = this.vector[i] + other.vector[i];
-        }
-        writeUnlock();
     }
 
     public void negate() {
         // TODO: negate vector
         writeLock();
-        for (int i = 0; i < vector.length; i++) {
-            this.vector[i] = this.vector[i] * (-1);
+        try {
+            for (int i = 0; i < vector.length; i++) {
+                this.vector[i] = this.vector[i] * (-1);
+            }
+        } finally {
+            writeUnlock();
         }
-        writeUnlock();
     }
 
     public double dot(SharedVector other) {
@@ -109,15 +116,44 @@ public class SharedVector {
         readLock();
         other.readLock();
         double ans = 0;
-        for (int i = 0; i < length(); i++) {
-            ans += get(i) * other.get(i);
+        try {
+            for (int i = 0; i < length(); i++) {
+                ans += this.vector[i] * other.vector[i];
+            }
+        } finally {
+            readUnlock();
+            other.readUnlock();
         }
-        readUnlock();
-        other.readUnlock();
         return ans;
     }
 
     public void vecMatMul(SharedMatrix matrix) {
         // TODO: compute row-vector × matrix
+        writeLock();
+        try {
+            if (getOrientation() != VectorOrientation.ROW_MAJOR) {
+                throw new IllegalArgumentException("not ROW dot COLUMN - on vecMatMul");
+            }
+            if (length() != matrix.get(0).length()){
+                throw new IllegalArgumentException("ROW length doesn't match COLUMN length - on vecMatMul");
+            }
+
+            SharedMatrix new_matrix = matrix;
+            if (matrix.getOrientation() != VectorOrientation.COLUMN_MAJOR){
+                double[][] rawData = matrix.readRowMajor();
+                new_matrix = new SharedMatrix();
+                new_matrix.loadColumnMajor(rawData);
+            }
+
+            SharedVector new_vec = new SharedVector(new double[new_matrix.length()], this.getOrientation());
+            for (int i = 0; i < new_vec.length(); i++) {
+                new_vec.vector[i] = this.dot(new_matrix.get(i));
+            }   
+            
+            this.vector = new_vec.vector;
+            this.orientation = new_vec.getOrientation();
+        } finally {
+            writeUnlock();
+        }  
     }
 }
