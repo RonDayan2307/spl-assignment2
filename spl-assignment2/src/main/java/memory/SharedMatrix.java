@@ -64,6 +64,7 @@ public class SharedMatrix {
     }
 
     public double[][] readRowMajor() {
+        // TODO: return matrix contents as a row-major double[][]
         if (this.vectors == null){
             throw new IllegalArgumentException("matrix is null - on readRowMajor");
         }
