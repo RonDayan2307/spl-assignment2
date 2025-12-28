@@ -57,6 +57,10 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
      */
     public void newTask(Runnable task) {
        // TODO
+       // Inserts element into this queue immediately if possible. returns true upon success and false if no space is currently available.
+       if (!handoff.offer(task)) {
+            throw new IllegalStateException("Thread #" + id + " is occupied.");
+        }
     }
 
     /**
@@ -65,16 +69,51 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
      */
     public void shutdown() {
        // TODO
+       try {
+            //Inserts the specified element into this queue, waiting if necessary for space to become available.
+            handoff.put(POISON_PILL);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public void run() {
        // TODO
+       while (alive.get()) {
+            try {
+                Runnable task = handoff.take();
+                timeIdle.getAndAdd(System.nanoTime() - idleStartTime.get());
+
+                long workStartTime = System.nanoTime();
+                if (task == POISON_PILL) {
+                    alive.set(false);
+                    break;
+                }
+                
+                try {
+                    busy.set(true);
+                    task.run();
+                } catch (RuntimeException e) {
+                    System.err.println("Thread #" + id + " error: " + e.getMessage());
+                } finally {
+                    long workDuration = System.nanoTime() - workStartTime;
+                    timeUsed.addAndGet(workDuration);
+                    busy.set(false);
+                    idleStartTime.set(System.nanoTime()); 
+                }
+
+            } catch (InterruptedException e) {
+                alive.set(false);
+                break;
+            }
+        }
     }
 
     @Override
     public int compareTo(TiredThread o) {
         // TODO
-        return 0;
+        //comparing doubles using the double class
+        return Double.compare(this.getFatigue(), o.getFatigue());
     }
 }

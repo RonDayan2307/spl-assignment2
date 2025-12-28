@@ -132,7 +132,7 @@ public class SharedMatrix {
         // TODO: return orientation
         acquireAllVectorReadLocks(this.vectors);
         try {
-            VectorOrientation ans = vectors[0].getOrientation();;
+            VectorOrientation ans = vectors[0].getOrientation();
             releaseAllVectorReadLocks(this.vectors);
             return ans;
         } catch (Exception exp) {
