@@ -1,8 +1,6 @@
 package scheduling;
 
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TiredExecutor {
@@ -13,23 +11,79 @@ public class TiredExecutor {
 
     public TiredExecutor(int numThreads) {
         // TODO
-        workers = null; // placeholder
+        // creating workers
+        this.workers = new TiredThread[numThreads];
+        for (int i = 0; i < numThreads; i++) {
+            double fatigueFactor = 0.5 + (Math.random());
+            TiredThread worker = new TiredThread(i, fatigueFactor);
+            this.workers[i] = worker;
+            worker.start();
+            idleMinHeap.add(worker);
+        }
     }
 
     public void submit(Runnable task) {
         // TODO
+        try {
+            TiredThread worker = idleMinHeap.take();
+            inFlight.incrementAndGet();
+
+            Runnable wrapper = () -> {
+                try {
+                    task.run();
+                } finally {
+                    inFlight.decrementAndGet();
+                    idleMinHeap.add(worker);
+                    if (inFlight.get() == 0) {
+                        synchronized (this) {
+                            this.notifyAll();
+                        }
+                    }
+                }
+            };
+
+            worker.newTask(wrapper);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void submitAll(Iterable<Runnable> tasks) {
         // TODO: submit tasks one by one and wait until all finish
+        for (Runnable task : tasks) {
+            submit(task);
+        }
+        // waiting for all tasks to finish
+        synchronized (this) {
+            while (inFlight.get() > 0) {
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
     }
 
     public void shutdown() throws InterruptedException {
         // TODO
+        for (TiredThread worker : workers) {
+            worker.shutdown();
+        }
+        for (TiredThread worker : workers) {
+            worker.join();
+        }
     }
 
     public synchronized String getWorkerReport() {
         // TODO: return readable statistics for each worker
-        return null;
+        String report = "Worker Report:\n";
+        for (TiredThread worker : this.workers) {
+            report = report + "Worker " + worker.getWorkerId() + "Used: " + worker.getTimeUsed() + "Idle: " + 
+                     worker.getTimeIdle() + "Used: " + worker.getFatigue() + "\n";
+        }
+        return report;
     }
 }
