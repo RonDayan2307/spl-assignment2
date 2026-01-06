@@ -43,7 +43,6 @@ public class TiredExecutor {
             };
 
             worker.newTask(wrapper);
-
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

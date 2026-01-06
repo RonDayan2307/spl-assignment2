@@ -83,6 +83,7 @@ public class SharedMatrix {
                     throw new IllegalArgumentException("vector orientation in matrix invalid - on readRowMajor");
                 }
             }
+            //check the vector orientation and react accordingly
             if (vec_ori == VectorOrientation.ROW_MAJOR) {
                 double[][] ans = new double[this.vectors.length][vec_len];
                 for (int i = 0; i < this.vectors.length; i++) {
@@ -93,7 +94,7 @@ public class SharedMatrix {
                 return ans;
             }
             if (vec_ori == VectorOrientation.COLUMN_MAJOR) {
-                double[][] ans = new double[this.vectors.length][vec_len];
+                double[][] ans = new double[vec_len][this.vectors.length];
                 for (int i = 0; i < this.vectors.length; i++) {
                     for (int j = 0; j < vec_len; j++) {
                         ans[j][i] = vectors[i].get(j);
