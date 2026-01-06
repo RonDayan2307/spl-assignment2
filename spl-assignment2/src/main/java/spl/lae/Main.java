@@ -1,5 +1,8 @@
 package spl.lae;
 import java.io.IOException;
+import parser.ComputationNode;
+import parser.InputParser;
+import parser.OutputWriter;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -34,7 +37,6 @@ public class Main {
 
             System.out.println(engine.getWorkerReport());
         } catch (Exception e) {
-            // If anything goes wrong (Parsing, Math, I/O), write the error to the file
             try {
                 OutputWriter.write(e.getMessage(), outputPath);
             } catch (IOException ioException) {
@@ -42,9 +44,6 @@ public class Main {
             }
             e.printStackTrace();
         } finally {
-            // 6. Graceful Shutdown
-            // We must shut down the executor, otherwise the worker threads will 
-            // keep the JVM alive and the program will never exit.
             if (engine != null) {
               try {
                 engine.executor.shutdown();
