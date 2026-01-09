@@ -1,6 +1,6 @@
 package spl.lae;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import memory.SharedMatrix;
@@ -19,24 +19,12 @@ public class LinearAlgebraEngine {
         this.executor = new TiredExecutor(numThreads);
     }
 
-    public void setLeft(SharedMatrix l){
-        leftMatrix=l;
-    }
-
-    public void setRight(SharedMatrix r){
-        rightMatrix = r;
-    }
-
-    public SharedMatrix getLeft(){
-        return leftMatrix;
-    }
-
     public ComputationNode run(ComputationNode computationRoot) {
         // TODO: resolve computation tree step by step until final matrix is produced
-        ComputationNode activeNode = computationRoot.findResolvable();
-        while (activeNode != null && computationRoot.getNodeType() == ComputationNodeType.MATRIX) {
-            loadAndCompute(activeNode);
-            activeNode = computationRoot.findResolvable();
+        ComputationNode active = computationRoot.findResolvable();
+        while (active != null) {
+            loadAndCompute(active);
+            active = computationRoot.findResolvable();
         }
         return computationRoot;
     }
@@ -46,11 +34,11 @@ public class LinearAlgebraEngine {
         // TODO: create compute tasks & submit tasks to executor
         List<Runnable> tasks;
         List<ComputationNode> children = node.getChildren();
-        double[][] firstRaw = children.get(0).getMatrix();
-        leftMatrix.loadRowMajor(firstRaw);
+        double[][] first = children.get(0).getMatrix();
+        leftMatrix.loadRowMajor(first);
         if (children.size() > 1) {
-            double[][] secondRaw = children.get(1).getMatrix();
-            rightMatrix.loadRowMajor(secondRaw);
+            double[][] second = children.get(1).getMatrix();
+            rightMatrix.loadRowMajor(second);
         }
 
         ComputationNodeType type = node.getNodeType();
@@ -67,83 +55,76 @@ public class LinearAlgebraEngine {
             tasks = createTransposeTasks();
         } 
         else {
-            throw new IllegalArgumentException("Unsupported operation: " + type);
+            throw new IllegalArgumentException("unknown operation: " + type);
         }
 
         executor.submitAll(tasks);
-        double[][] resultData = leftMatrix.readRowMajor();
-        node.resolve(resultData);
+        double[][] result = leftMatrix.readRowMajor();
+        node.resolve(result);
     }
 
     public List<Runnable> createAddTasks() {
         // TODO: return tasks that perform row-wise addition
         int rows = leftMatrix.length();
+        if (rows == 0) { 
+            return Arrays.asList();
+        }
         if (rows != rightMatrix.length() || leftMatrix.get(0).length() != rightMatrix.get(0).length()) {
-            throw new IllegalArgumentException("Matrix dimensions mismatch for Addition.");
+            throw new IllegalArgumentException("dimentions dont match - on add task.");
         }
         Runnable[] tasks = new Runnable[rows];
         for (int i = 0; i < rows; i++) {
-            final int rowIndex = i;
+            final int index = i;
             tasks[i] = () -> {
-                leftMatrix.get(rowIndex).add(rightMatrix.get(rowIndex));
+                leftMatrix.get(index).add(rightMatrix.get(index));
             };
         }
-        List<Runnable> taskList = new ArrayList<>();
-        for (int i = 0; i < tasks.length; i++) {
-            taskList.add(tasks[i]);
-        }
-        return taskList;
+        return Arrays.asList(tasks);
     }
 
     public List<Runnable> createMultiplyTasks() {
         // TODO: return tasks that perform row × matrix multiplication
         int rows = leftMatrix.length();
-        Runnable[] taskArray = new Runnable[rows];
+        if (rows == 0) { 
+            return Arrays.asList();
+        }
+        if (leftMatrix.get(0).length() != rightMatrix.length()) {
+            throw new IllegalArgumentException("dimentions dont match - on multiply task.");
+        }
+        Runnable[] tasks = new Runnable[rows];
         for (int i = 0; i < rows; i++) {
-            final int rowIndex = i;
-            taskArray[i] = () -> {
-                leftMatrix.get(rowIndex).vecMatMul(rightMatrix);
+            final int index = i;
+            tasks[i] = () -> {
+                leftMatrix.get(index).vecMatMul(this.rightMatrix);
             };
         }
-        List<Runnable> taskList = new ArrayList<>();
-        for (int i = 0; i < taskArray.length; i++) {
-            taskList.add(taskArray[i]);
-        }
-        return taskList;
+        return Arrays.asList(tasks);
     }
 
     public List<Runnable> createNegateTasks() {
         // TODO: return tasks that negate rows
         int rows = leftMatrix.length();
-        Runnable[] taskArray = new Runnable[rows];
+        Runnable[] tasks = new Runnable[rows];
         for (int i = 0; i < rows; i++) {
-            final int rowIndex = i;
-            taskArray[i] = () -> {
-                leftMatrix.get(rowIndex).negate();
+            final int index = i;
+            tasks[i] = () -> {
+                leftMatrix.get(index).negate();
             };
         }
-        List<Runnable> taskList = new ArrayList<>();
-        for (int i = 0; i < taskArray.length; i++) {
-            taskList.add(taskArray[i]);
-        }
-        return taskList;
+        return Arrays.asList(tasks);
     }
 
     public List<Runnable> createTransposeTasks() {
         // TODO: return tasks that transpose rows
         int rows = leftMatrix.length();
-        Runnable[] taskArray = new Runnable[rows];
+        Runnable[] tasks = new Runnable[rows];
         for (int i = 0; i < rows; i++) {
-            final int rowIndex = i;
-            taskArray[i] = () -> {
-                leftMatrix.get(rowIndex).transpose();
+            final int index = i;
+            tasks[i] = () -> {
+                leftMatrix.get(index).transpose();
             };
         }
-        List<Runnable> taskList = new ArrayList<>();
-        for (int i = 0; i < taskArray.length; i++) {
-            taskList.add(taskArray[i]);
-        }
-        return taskList;
+        return Arrays.asList(tasks);
     }
 
     public String getWorkerReport() {
