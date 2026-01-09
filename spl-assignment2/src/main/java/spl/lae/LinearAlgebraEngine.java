@@ -19,6 +19,18 @@ public class LinearAlgebraEngine {
         this.executor = new TiredExecutor(numThreads);
     }
 
+    public void setLeft(SharedMatrix l){
+        leftMatrix=l;
+    }
+
+    public void setRight(SharedMatrix r){
+        rightMatrix = r;
+    }
+
+    public SharedMatrix getLeft(){
+        return leftMatrix;
+    }
+
     public ComputationNode run(ComputationNode computationRoot) {
         // TODO: resolve computation tree step by step until final matrix is produced
         ComputationNode activeNode = computationRoot.findResolvable();
@@ -137,5 +149,15 @@ public class LinearAlgebraEngine {
     public String getWorkerReport() {
         // TODO: return summary of worker activity
         return executor.getWorkerReport();
+    }
+
+
+// shutdown executor - to be accessed from main
+    public void shutdown() {
+        try {
+            executor.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,0 +1,17 @@
+-------------------------------------------------------------------------------
+Test set: memoryTest.SharedVectorTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.026 s <<< FAILURE! -- in memoryTest.SharedVectorTest
+memoryTest.SharedVectorTest.test_get_index_success -- Time elapsed: 0.014 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: expected: <1.0> but was: <0.0>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:70)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:65)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:889)
+	at memoryTest.SharedVectorTest.test_get_index_success(SharedVectorTest.java:23)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+

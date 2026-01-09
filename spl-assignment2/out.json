@@ -1,3 +1,146 @@
-{
-  "result" : [ [ -2.46812775E8, -2.4781405E8, -2.48815325E8, -2.498166E8, -2.50817875E8, -2.5181915E8, -2.52820425E8, -2.538217E8, -2.54822975E8, -2.5582425E8 ], [ -2.80207725E8, -2.8134445E8, -2.82481175E8, -2.836179E8, -2.84754625E8, -2.8589135E8, -2.87028075E8, -2.881648E8, -2.89301525E8, -2.9043825E8 ], [ -3.13602675E8, -3.1487485E8, -3.16147025E8, -3.174192E8, -3.18691375E8, -3.1996355E8, -3.21235725E8, -3.225079E8, -3.23780075E8, -3.2505225E8 ], [ -3.46997625E8, -3.4840525E8, -3.49812875E8, -3.512205E8, -3.52628125E8, -3.5403575E8, -3.55443375E8, -3.56851E8, -3.58258625E8, -3.5966625E8 ], [ -3.80392575E8, -3.8193565E8, -3.83478725E8, -3.850218E8, -3.86564875E8, -3.8810795E8, -3.89651025E8, -3.911941E8, -3.92737175E8, -3.9428025E8 ], [ -4.13787525E8, -4.1546605E8, -4.17144575E8, -4.188231E8, -4.20501625E8, -4.2218015E8, -4.23858675E8, -4.255372E8, -4.27215725E8, -4.2889425E8 ], [ -4.47182475E8, -4.4899645E8, -4.50810425E8, -4.526244E8, -4.54438375E8, -4.5625235E8, -4.58066325E8, -4.598803E8, -4.61694275E8, -4.6350825E8 ], [ -4.80577425E8, -4.8252685E8, -4.84476275E8, -4.864257E8, -4.88375125E8, -4.9032455E8, -4.92273975E8, -4.942234E8, -4.96172825E8, -4.9812225E8 ], [ -5.13972375E8, -5.1605725E8, -5.18142125E8, -5.20227E8, -5.22311875E8, -5.2439675E8, -5.26481625E8, -5.285665E8, -5.30651375E8, -5.3273625E8 ], [ -5.47367325E8, -5.4958765E8, -5.51807975E8, -5.540283E8, -5.56248625E8, -5.5846895E8, -5.60689275E8, -5.629096E8, -5.65129925E8, -5.6735025E8 ] ]
+package memory;
+
+public class SharedMatrix {
+
+    // volatile ensures visibility when the array reference is updated
+    private volatile SharedVector[] vectors; 
+
+    public SharedMatrix() {
+        this.vectors = new SharedVector[0];
+    }
+
+    public SharedMatrix(double[][] matrix) {
+        this.loadRowMajor(matrix);
+    }
+
+    public void loadRowMajor(double[][] matrix) {
+        if (matrix == null) {
+            throw new IllegalArgumentException("Matrix cannot be null");
+        }
+        if (matrix.length == 0) {
+            this.vectors = new SharedVector[0];
+            return;
+        }
+        
+        int vec_len = matrix[0].length;
+        SharedVector[] new_vectors = new SharedVector[matrix.length];
+        
+        for (int i = 0; i < matrix.length; i++) {
+            if (matrix[i].length != vec_len) {
+                throw new IllegalArgumentException("Inconsistent vector lengths in matrix");
+            }
+            new_vectors[i] = new SharedVector(matrix[i], VectorOrientation.ROW_MAJOR);
+        }
+        // Atomic switch of the array reference
+        this.vectors = new_vectors;
+    }
+
+    public void loadColumnMajor(double[][] matrix) {
+        if (matrix == null) {
+            throw new IllegalArgumentException("Matrix cannot be null");
+        }
+        if (matrix.length == 0) {
+            this.vectors = new SharedVector[0];
+            return;
+        }
+
+        int rows = matrix.length;
+        int cols = matrix[0].length;
+        SharedVector[] new_vectors = new SharedVector[cols];
+
+        for (int j = 0; j < cols; j++) {
+            double[] column_vector = new double[rows];
+            for (int i = 0; i < rows; i++) {
+                // Check consistency while transposing
+                if (matrix[i].length != cols) {
+                    throw new IllegalArgumentException("Inconsistent vector lengths in matrix");
+                }
+                column_vector[i] = matrix[i][j];
+            }
+            new_vectors[j] = new SharedVector(column_vector, VectorOrientation.COLUMN_MAJOR);
+        }
+        // Atomic switch
+        this.vectors = new_vectors;
+    }
+
+    public double[][] readRowMajor() {
+        // CRITICAL FIX: Capture the reference to local variable 'snapshot' first.
+        // This ensures we lock and read the exact same array objects, 
+        // even if another thread calls load() and changes 'this.vectors' concurrently.
+        SharedVector[] snapshot = this.vectors;
+
+        if (snapshot.length == 0) {
+            return new double[0][0];
+        }
+
+        acquireAllVectorReadLocks(snapshot);
+        try {
+            int rows = snapshot.length;
+            int cols = snapshot[0].length();
+            VectorOrientation orientation = snapshot[0].getOrientation();
+
+            // Depending on orientation, dimensions flip in the output 2D array
+            if (orientation == VectorOrientation.ROW_MAJOR) {
+                double[][] result = new double[rows][cols];
+                for (int i = 0; i < rows; i++) {
+                    for (int j = 0; j < cols; j++) {
+                        result[i][j] = snapshot[i].get(j);
+                    }
+                }
+                return result;
+            } else { 
+                // COLUMN_MAJOR: The stored vectors are columns. 
+                // We need to output Row-Major 2D array, so we essentially transpose.
+                // 'rows' here is actually number of columns (vectors), 'cols' is number of rows.
+                double[][] result = new double[cols][rows];
+                for (int i = 0; i < rows; i++) { // i is column index
+                    for (int j = 0; j < cols; j++) { // j is row index
+                        result[j][i] = snapshot[i].get(j);
+                    }
+                }
+                return result;
+            }
+        } finally {
+            releaseAllVectorReadLocks(snapshot);
+        }
+    }
+
+    public SharedVector get(int index) {
+        // Array access is atomic; if index is out of bounds, Java throws the exception automatically.
+        // We use the local reference to ensure we return a vector that belongs to the current matrix state.
+        SharedVector[] snapshot = this.vectors;
+        return snapshot[index];
+    }
+
+    public int length() {
+        // OPTIMIZATION: No need to lock vectors to check array length.
+        return this.vectors.length;
+    }
+
+    public VectorOrientation getOrientation() {
+        // OPTIMIZATION: Only lock the first vector if it exists.
+        SharedVector[] snapshot = this.vectors;
+        if (snapshot.length == 0) {
+            // Default or throw? Assignment implies matrices have dimensions.
+            // Returning ROW_MAJOR as safe default for empty.
+            return VectorOrientation.ROW_MAJOR; 
+        }
+        return snapshot[0].getOrientation();
+    }
+
+    private void acquireAllVectorReadLocks(SharedVector[] vecs) {
+        for (SharedVector vec : vecs) {
+            vec.readLock();
+        }
+    }
+
+    private void releaseAllVectorReadLocks(SharedVector[] vecs) {
+        for (SharedVector vec : vecs) {
+            vec.readUnlock();
+        }
+    }
+    
+    // Unused helper methods removed or kept empty if required by skeleton strictness.
+    // If skeleton requires them, keep them but ensure they are used correctly.
+    // Since 'vecMatMul' is in SharedVector, we likely don't need write locks on the whole matrix often.
 }

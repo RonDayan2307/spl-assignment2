@@ -1,5 +1,6 @@
 package spl.lae;
 import java.io.IOException;
+
 import parser.ComputationNode;
 import parser.InputParser;
 import parser.OutputWriter;
@@ -9,15 +10,18 @@ public class Main {
       // TODO: 
       if (args.length != 3) {
             System.err.println("Usage: java spl.lae.Main <input_file> <output_file> <num_threads>");
-            return;
+            args = new String[3];
+            args[0] = "4";
+            args[1] = "example.json";
+            args[2] = "out.json";
         }
 
-        String inputPath = args[0];
-        String outputPath = args[1];
-        int numThreads = 0;
+        String inputPath = args[1];
+        String outputPath = args[2];
+        int numThreads =0;
 
         try {
-            numThreads = Integer.parseInt(args[2]);
+            numThreads = Integer.parseInt(args[0]);
         } catch (NumberFormatException e) {
             System.err.println("Error: Number of threads must be an integer.");
             return;
@@ -46,8 +50,8 @@ public class Main {
         } finally {
             if (engine != null) {
               try {
-                engine.executor.shutdown();
-              } catch (InterruptedException e) {
+                engine.shutdown();
+              } catch (Exception e) {
                 e.printStackTrace();
               }
             }
