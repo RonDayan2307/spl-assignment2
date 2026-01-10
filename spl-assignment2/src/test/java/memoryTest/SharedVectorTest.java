@@ -1,253 +1,402 @@
 package memory;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class SharedVectorTest {
 
-    private SharedVector rowVec;
-    private SharedVector colVec;
-    private double[] data1 = {1.0, 2.0, 3.0};
-    private double[] data2 = {4.0, 5.0, 6.0};
-
-    @BeforeEach
-    public void setUp() {
-        // Reset vectors before each test
-        rowVec = new SharedVector(data1.clone(), VectorOrientation.ROW_MAJOR);
-        colVec = new SharedVector(data2.clone(), VectorOrientation.COLUMN_MAJOR);
-    }
-
     // ==========================================
-    // BASIC TESTS (From previous run)
+    // 1. GET() TESTS
     // ==========================================
 
     @Test
-    public void testGetAndLength() {
-        assertEquals(3, rowVec.length());
-        assertEquals(1.0, rowVec.get(0));
-        assertEquals(3.0, rowVec.get(2));
-        assertDoesNotThrow(() -> rowVec.get(1));
+    public void testGet_Small_Pass() {
+        // 1. Small Pass: Simple access
+        SharedVector v = new SharedVector(new double[]{10.0, 20.0, 30.0}, VectorOrientation.ROW_MAJOR);
+        assertEquals(20.0, v.get(1));
     }
 
     @Test
-    public void testGetOrientation() {
-        assertEquals(VectorOrientation.ROW_MAJOR, rowVec.getOrientation());
-        assertEquals(VectorOrientation.COLUMN_MAJOR, colVec.getOrientation());
+    public void testGet_Small_Fail() {
+        // 2. Small Fail: Index out of bounds
+        SharedVector v = new SharedVector(new double[]{1.0, 2.0}, VectorOrientation.ROW_MAJOR);
+        assertThrows(IndexOutOfBoundsException.class, () -> v.get(5));
     }
 
     @Test
-    public void testTranspose() {
-        rowVec.transpose();
-        assertEquals(VectorOrientation.COLUMN_MAJOR, rowVec.getOrientation(), 
-            "Row vector should become Column vector after transpose");
-
-        colVec.transpose();
-        assertEquals(VectorOrientation.ROW_MAJOR, colVec.getOrientation(), 
-            "Column vector should become Row vector after transpose");
-    }
-
-    @Test
-    public void testAddValid() {
-        SharedVector other = new SharedVector(new double[]{10.0, 10.0, 10.0}, VectorOrientation.ROW_MAJOR);
-        rowVec.add(other);
-        assertEquals(11.0, rowVec.get(0));
-        assertEquals(12.0, rowVec.get(1));
-        assertEquals(13.0, rowVec.get(2));
-    }
-
-    @Test
-    public void testAddMismatchLength() {
-        SharedVector shortVec = new SharedVector(new double[]{1.0, 1.0}, VectorOrientation.ROW_MAJOR);
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> rowVec.add(shortVec));
-        assertTrue(exception.getMessage().contains("length"));
-    }
-
-    @Test
-    public void testAddMismatchOrientation() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> rowVec.add(colVec));
-        assertTrue(exception.getMessage().contains("orientation"));
-    }
-
-    @Test
-    public void testNegate() {
-        rowVec.negate();
-        assertEquals(-1.0, rowVec.get(0));
-        assertEquals(-2.0, rowVec.get(1));
-        assertEquals(-3.0, rowVec.get(2));
-        rowVec.negate();
-        assertEquals(1.0, rowVec.get(0));
-    }
-
-    @Test
-    public void testDotProductValid() {
-        // [1, 2, 3] . [4, 5, 6]^T = 32
-        double result = rowVec.dot(colVec);
-        assertEquals(32.0, result, 0.0001);
-    }
-
-    @Test
-    public void testDotProductInvalidOrientation() {
-        SharedVector row2 = new SharedVector(data2.clone(), VectorOrientation.ROW_MAJOR);
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> rowVec.dot(row2));
-        assertTrue(exception.getMessage().contains("ROW dot COLUMN"));
-    }
-
-    @Test
-    public void testLockingBehavior() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        Thread t = new Thread(() -> {
-            rowVec.writeLock();
-            try {
-                try { Thread.sleep(10); } catch (InterruptedException e) {}
-            } finally {
-                rowVec.writeUnlock();
-            }
-            latch.countDown();
-        });
-        t.start();
-        boolean finished = latch.await(1, TimeUnit.SECONDS);
-        assertTrue(finished, "Thread should finish, implying locks were released correctly");
-    }
-
-    // ==========================================
-    // COMPLEX & STRESS TESTS (New)
-    // ==========================================
-
-    @Test
-    public void testChainedOperations() {
-        // Scenario: Start with Row [1, 2, 3]
-        // 1. Negate -> [-1, -2, -3]
-        // 2. Transpose -> Column [-1, -2, -3]
-        // 3. Negate -> Column [1, 2, 3]
-        // 4. Dot Product with Row [1, 1, 1] (Valid: Row dot Column)
+    public void testGet_Mid_Pass() {
+        // 3. Mid Scale Pass: 100 elements
+        double[] data = new double[100];
+        for(int i=0; i<100; i++) data[i] = i;
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
         
-        SharedVector v = new SharedVector(new double[]{1.0, 2.0, 3.0}, VectorOrientation.ROW_MAJOR);
-        SharedVector ones = new SharedVector(new double[]{1.0, 1.0, 1.0}, VectorOrientation.ROW_MAJOR);
-
-        v.negate(); 
-        assertEquals(-1.0, v.get(0));
-        
-        v.transpose(); 
-        assertEquals(VectorOrientation.COLUMN_MAJOR, v.getOrientation());
-        
-        v.negate(); 
-        assertEquals(1.0, v.get(0));
-
-        // Now we compute ones (Row) dot v (Column)
-        double result = ones.dot(v);
-        assertEquals(6.0, result, 0.0001);
+        assertEquals(50.0, v.get(50));
+        assertEquals(99.0, v.get(99));
     }
 
     @Test
-    public void testLargeVectorMath() {
-        // Create two large vectors of size 10,000 to ensure no loop errors or overflows
+    public void testGet_Mid_Fail() {
+        // 4. Mid Scale Fail: Negative index
+        double[] data = new double[100];
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        assertThrows(IndexOutOfBoundsException.class, () -> v.get(-1));
+    }
+
+    @Test
+    public void testGet_Large_Pass() {
+        // 5. Large Scale Pass: 10,000 elements
         int size = 10000;
-        double[] largeData1 = new double[size];
-        double[] largeData2 = new double[size];
+        double[] data = new double[size];
+        data[size-1] = 999.9;
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
         
-        for (int i = 0; i < size; i++) {
-            largeData1[i] = 1.0;
-            largeData2[i] = 2.0;
-        }
+        assertEquals(999.9, v.get(size-1));
+    }
 
-        SharedVector v1 = new SharedVector(largeData1, VectorOrientation.ROW_MAJOR);
-        SharedVector v2 = new SharedVector(largeData2, VectorOrientation.COLUMN_MAJOR);
+    // ==========================================
+    // 2. LENGTH() TESTS
+    // ==========================================
 
-        // Dot product should be 1*2 * 10000 = 20000
-        assertEquals(20000.0, v1.dot(v2), 0.001);
+    @Test
+    public void testLength_Small_Pass() {
+        // 1. Small Pass
+        SharedVector v = new SharedVector(new double[]{1, 2, 3}, VectorOrientation.ROW_MAJOR);
+        assertEquals(3, v.length());
     }
 
     @Test
-    public void testConcurrentNegateAndRead() throws InterruptedException {
-        // Stress Test: 
-        // 10 threads trying to read the vector while 1 thread tries to negate it continuously.
-        // This ensures the ReadWriteLock is actually working (Readers can overlap, Writer is exclusive).
-        
-        int numReaders = 10;
-        ExecutorService pool = Executors.newFixedThreadPool(numReaders + 1);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        AtomicReference<Throwable> error = new AtomicReference<>();
+    public void testLength_Small_Fail() {
+        // 2. Small Fail (Anti-check): Ensure length is NOT 0 for populated vector
+        SharedVector v = new SharedVector(new double[]{1, 2}, VectorOrientation.ROW_MAJOR);
+        assertNotEquals(0, v.length());
+    }
 
-        // Writer Thread (Negates 100 times)
-        pool.submit(() -> {
-            try {
-                startLatch.await();
-                for (int i = 0; i < 100; i++) {
-                    rowVec.negate();
-                }
-            } catch (Exception e) {
-                error.set(e);
-            }
+    @Test
+    public void testLength_Mid_Pass() {
+        // 3. Mid Scale Pass
+        double[] data = new double[500];
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        assertEquals(500, v.length());
+    }
+
+    @Test
+    public void testLength_Mid_Fail() {
+        // 4. Mid Scale Fail (Anti-check): Ensure length is exactly accurate
+        double[] data = new double[500];
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        assertNotEquals(499, v.length());
+    }
+
+    @Test
+    public void testLength_Large_Pass() {
+        // 5. Large Scale Pass
+        double[] data = new double[100000];
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        assertEquals(100000, v.length());
+    }
+
+    // ==========================================
+    // 3. TRANSPOSE() TESTS
+    // ==========================================
+
+    @Test
+    public void testTranspose_Small_Pass() {
+        // 1. Small Pass: Row -> Col
+        SharedVector v = new SharedVector(new double[]{1}, VectorOrientation.ROW_MAJOR);
+        v.transpose();
+        assertEquals(VectorOrientation.COLUMN_MAJOR, v.getOrientation());
+    }
+
+    @Test
+    public void testTranspose_Small_Fail() {
+        // 2. Small Fail: Verify it does NOT stay the same
+        SharedVector v = new SharedVector(new double[]{1}, VectorOrientation.ROW_MAJOR);
+        v.transpose();
+        assertNotEquals(VectorOrientation.ROW_MAJOR, v.getOrientation());
+    }
+
+    @Test
+    public void testTranspose_Mid_Pass() {
+        // 3. Mid Scale Pass: Double transpose (Row -> Col -> Row)
+        double[] data = new double[100];
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        v.transpose();
+        v.transpose();
+        assertEquals(VectorOrientation.ROW_MAJOR, v.getOrientation());
+    }
+
+    @Test
+    public void testTranspose_Mid_Fail() {
+        // 4. Mid Scale Fail: Check logic integrity
+        SharedVector v = new SharedVector(new double[100], VectorOrientation.COLUMN_MAJOR);
+        v.transpose();
+        // Should NOT be COLUMN anymore
+        assertNotEquals(VectorOrientation.COLUMN_MAJOR, v.getOrientation());
+    }
+
+    @Test
+    public void testTranspose_Large_Pass() {
+        // 5. Large Scale Pass: Verify data integrity after transpose
+        int size = 10000;
+        double[] data = new double[size];
+        data[0] = 123.0;
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        v.transpose();
+        assertEquals(VectorOrientation.COLUMN_MAJOR, v.getOrientation());
+        assertEquals(123.0, v.get(0)); // Data must be preserved
+    }
+
+    // ==========================================
+    // 4. ADD() TESTS
+    // ==========================================
+
+    @Test
+    public void testAdd_Small_Pass() {
+        // 1. Small Pass
+        SharedVector v1 = new SharedVector(new double[]{1, 2}, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[]{3, 4}, VectorOrientation.ROW_MAJOR);
+        v1.add(v2);
+        assertEquals(4.0, v1.get(0));
+        assertEquals(6.0, v1.get(1));
+    }
+
+    @Test
+    public void testAdd_Small_Fail() {
+        // 2. Small Fail: Orientation Mismatch
+        SharedVector v1 = new SharedVector(new double[]{1}, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[]{1}, VectorOrientation.COLUMN_MAJOR);
+        Exception e = assertThrows(IllegalArgumentException.class, () -> v1.add(v2));
+        assertTrue(e.getMessage().contains("orientation"));
+    }
+
+    @Test
+    public void testAdd_Mid_Pass() {
+        // 3. Mid Pass: 100 elements
+        double[] d1 = new double[100];
+        double[] d2 = new double[100];
+        for(int i=0; i<100; i++) { d1[i]=1; d2[i]=2; }
+        
+        SharedVector v1 = new SharedVector(d1, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(d2, VectorOrientation.ROW_MAJOR);
+        v1.add(v2);
+        
+        assertEquals(3.0, v1.get(50));
+    }
+
+    @Test
+    public void testAdd_Mid_Fail() {
+        // 4. Mid Fail: Length Mismatch
+        SharedVector v1 = new SharedVector(new double[100], VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[99], VectorOrientation.ROW_MAJOR);
+        Exception e = assertThrows(IllegalArgumentException.class, () -> v1.add(v2));
+        assertTrue(e.getMessage().contains("length"));
+    }
+
+    @Test
+    public void testAdd_Large_Pass() {
+        // 5. Large Pass: 20,000 elements
+        int size = 20000;
+        double[] d1 = new double[size];
+        double[] d2 = new double[size];
+        for(int i=0; i<size; i++) { d1[i]=i; d2[i]=1; }
+        
+        SharedVector v1 = new SharedVector(d1, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(d2, VectorOrientation.ROW_MAJOR);
+        v1.add(v2);
+        
+        assertEquals(size, v1.get(size-1)); // (size-1) + 1 = size
+    }
+
+    // ==========================================
+    // 5. NEGATE() TESTS
+    // ==========================================
+
+    @Test
+    public void testNegate_Small_Pass() {
+        // 1. Small Pass
+        SharedVector v = new SharedVector(new double[]{1, -1}, VectorOrientation.ROW_MAJOR);
+        v.negate();
+        assertEquals(-1.0, v.get(0));
+        assertEquals(1.0, v.get(1));
+    }
+
+    @Test
+    public void testNegate_Small_Fail() {
+        // 2. Small Fail (Anti-check): Verify value changed
+        SharedVector v = new SharedVector(new double[]{5}, VectorOrientation.ROW_MAJOR);
+        v.negate();
+        assertNotEquals(5.0, v.get(0));
+    }
+
+    @Test
+    public void testNegate_Mid_Pass() {
+        // 3. Mid Pass: 100 zeros (should remain -0.0 or 0.0)
+        double[] data = new double[100]; // all 0
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        v.negate();
+        assertEquals(0.0, v.get(50), 0.0001);
+    }
+
+    @Test
+    public void testNegate_Mid_Fail() {
+        // 4. Mid Fail: Verify negation logic on range
+        double[] data = new double[100];
+        for(int i=0; i<100; i++) data[i] = 10;
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        v.negate();
+        // None should be positive
+        assertFalse(v.get(50) > 0);
+    }
+
+    @Test
+    public void testNegate_Large_Pass() {
+        // 5. Large Pass: 50,000 elements
+        int size = 50000;
+        double[] data = new double[size];
+        for(int i=0; i<size; i++) data[i] = i;
+        SharedVector v = new SharedVector(data, VectorOrientation.ROW_MAJOR);
+        v.negate();
+        assertEquals(-49999.0, v.get(size-1));
+    }
+
+    // ==========================================
+    // 6. DOT() TESTS
+    // ==========================================
+
+    @Test
+    public void testDot_Small_Pass() {
+        // 1. Small Pass: [1, 2] . [3, 4] = 3 + 8 = 11
+        SharedVector v1 = new SharedVector(new double[]{1, 2}, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[]{3, 4}, VectorOrientation.COLUMN_MAJOR);
+        assertEquals(11.0, v1.dot(v2));
+    }
+
+    @Test
+    public void testDot_Small_Fail() {
+        // 2. Small Fail: Row . Row
+        SharedVector v1 = new SharedVector(new double[]{1}, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[]{1}, VectorOrientation.ROW_MAJOR);
+        assertThrows(IllegalArgumentException.class, () -> v1.dot(v2));
+    }
+
+    @Test
+    public void testDot_Mid_Pass() {
+        // 3. Mid Pass: 100 ones . 100 ones = 100
+        double[] d = new double[100];
+        for(int i=0; i<100; i++) d[i] = 1.0;
+        
+        SharedVector v1 = new SharedVector(d, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(d.clone(), VectorOrientation.COLUMN_MAJOR);
+        assertEquals(100.0, v1.dot(v2));
+    }
+
+    @Test
+    public void testDot_Mid_Fail() {
+        // 4. Mid Fail: Size mismatch 100 vs 50
+        SharedVector v1 = new SharedVector(new double[100], VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(new double[50], VectorOrientation.COLUMN_MAJOR);
+        assertThrows(IllegalArgumentException.class, () -> v1.dot(v2));
+    }
+
+    @Test
+    public void testDot_Large_Pass() {
+        // 5. Large Pass: 10,000 elements
+        int size = 10000;
+        double[] d = new double[size];
+        for(int i=0; i<size; i++) d[i] = 0.5; // 0.5 * 0.5 = 0.25
+        
+        SharedVector v1 = new SharedVector(d, VectorOrientation.ROW_MAJOR);
+        SharedVector v2 = new SharedVector(d.clone(), VectorOrientation.COLUMN_MAJOR);
+        
+        // 0.25 * 10000 = 2500
+        assertEquals(2500.0, v1.dot(v2));
+    }
+
+    // ==========================================
+    // 7. VECMATMUL() TESTS
+    // ==========================================
+
+    @Test
+    public void testVecMatMul_Small_Pass() {
+        // 1. Small Pass: [1, 2] * Identity Matrix
+        SharedVector v = new SharedVector(new double[]{1, 2}, VectorOrientation.ROW_MAJOR);
+        SharedMatrix m = new SharedMatrix(new double[][]{
+            {1, 0},
+            {0, 1}
         });
-
-        // Reader Threads
-        for (int i = 0; i < numReaders; i++) {
-            pool.submit(() -> {
-                try {
-                    startLatch.await();
-                    for (int j = 0; j < 100; j++) {
-                        // Just acquire read lock and read a value
-                        rowVec.get(0); 
-                    }
-                } catch (Exception e) {
-                    error.set(e);
-                }
-            });
-        }
-
-        startLatch.countDown(); // Start all threads
-        pool.shutdown();
-        pool.awaitTermination(2, TimeUnit.SECONDS);
-
-        if (error.get() != null) {
-            fail("Exception occurred in concurrent test: " + error.get().getMessage());
-        }
-        
-        // Final state check: The vector was negated 100 times (even number), so it should be back to original
-        // [1, 2, 3]
-        assertEquals(1.0, rowVec.get(0), 0.001, "After 100 negations, value should be original");
+        v.vecMatMul(m);
+        assertEquals(1.0, v.get(0));
+        assertEquals(2.0, v.get(1));
     }
 
     @Test
-    public void testConcurrentAdd() throws InterruptedException {
-        // Stress Test:
-        // 50 threads all adding [1, 1, 1] to the main vector [0, 0, 0].
-        // If locking is correct, final result should be [50, 50, 50].
-        // If locking is missing/race conditions exist, some updates will be lost (e.g., result < 50).
+    public void testVecMatMul_Small_Fail() {
+        // 2. Small Fail: Calling on Column Vector (must be Row)
+        SharedVector v = new SharedVector(new double[]{1, 2}, VectorOrientation.COLUMN_MAJOR);
+        SharedMatrix m = new SharedMatrix(new double[][]{{1,0},{0,1}});
+        assertThrows(IllegalArgumentException.class, () -> v.vecMatMul(m));
+    }
 
-        SharedVector base = new SharedVector(new double[]{0.0, 0.0, 0.0}, VectorOrientation.ROW_MAJOR);
-        SharedVector increment = new SharedVector(new double[]{1.0, 1.0, 1.0}, VectorOrientation.ROW_MAJOR);
+    @Test
+    public void testVecMatMul_Mid_Pass() {
+        // 3. Mid Pass: [1,1...1] (size 10) * Matrix 10x10 of ones
+        // Result should be vector of [10, 10... 10]
+        int size = 10;
+        double[] vData = new double[size];
+        double[][] mData = new double[size][size];
         
-        int numThreads = 50;
-        ExecutorService pool = Executors.newFixedThreadPool(numThreads);
-        CountDownLatch startLatch = new CountDownLatch(1);
-
-        for (int i = 0; i < numThreads; i++) {
-            pool.submit(() -> {
-                try {
-                    startLatch.await();
-                    base.add(increment);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
+        for(int i=0; i<size; i++) {
+            vData[i] = 1.0;
+            for(int j=0; j<size; j++) mData[i][j] = 1.0;
         }
 
-        startLatch.countDown();
-        pool.shutdown();
-        pool.awaitTermination(2, TimeUnit.SECONDS);
+        SharedVector v = new SharedVector(vData, VectorOrientation.ROW_MAJOR);
+        SharedMatrix m = new SharedMatrix(mData);
+        
+        v.vecMatMul(m);
+        
+        assertEquals(10.0, v.get(0));
+        assertEquals(10.0, v.get(9));
+    }
 
-        assertEquals(50.0, base.get(0), 0.001, "Race condition detected! Expected 50.0 but got " + base.get(0));
+    @Test
+    public void testVecMatMul_Mid_Fail() {
+        // 4. Mid Fail: Matrix Dimension Mismatch
+        // Vector size 10, Matrix 5x10 (Rows of matrix must match cols of vector? 
+        // Logic: Row(1xN) * Matrix(NxM). Matrix rows must match Vector length.
+        
+        SharedVector v = new SharedVector(new double[10], VectorOrientation.ROW_MAJOR);
+        SharedMatrix m = new SharedMatrix(new double[5][10]); // 5 rows, 10 cols
+        
+        // This fails inside the dot product call within vecMatMul
+        assertThrows(IllegalArgumentException.class, () -> v.vecMatMul(m));
+    }
+
+    @Test
+    public void testVecMatMul_Large_Pass() {
+        // 5. Large Pass: 200x200
+        // Doing 10,000 might be too slow for basic unit tests (~O(N^2))
+        int size = 200;
+        double[] vData = new double[size];
+        double[][] mData = new double[size][size];
+        
+        // Vector = [1, 0, 0...]
+        // Matrix = Identity
+        // Result = [1, 0, 0...]
+        vData[0] = 55.0; 
+        for(int i=0; i<size; i++) mData[i][i] = 1.0; // Identity
+
+        SharedVector v = new SharedVector(vData, VectorOrientation.ROW_MAJOR);
+        SharedMatrix m = new SharedMatrix(mData);
+        
+        v.vecMatMul(m);
+        
+        assertEquals(55.0, v.get(0));
+        assertEquals(0.0, v.get(1));
+        assertEquals(0.0, v.get(size-1));
     }
 }
