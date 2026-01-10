@@ -1,2 +1,4 @@
 memory/SharedVectorTest.class
 memory/SharedMatrixTest.class
+scheduling/TiredExecutorTest.class
+scheduling/TiredThreadTest.class

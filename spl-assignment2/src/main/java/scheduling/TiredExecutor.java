@@ -9,6 +9,8 @@ public class TiredExecutor {
     private final PriorityBlockingQueue<TiredThread> idleMinHeap = new PriorityBlockingQueue<>();
     private final AtomicInteger inFlight = new AtomicInteger(0);
 
+    private volatile boolean isShutdown = false;
+
     public TiredExecutor(int numThreads) {
         // TODO
         // creating workers
@@ -68,6 +70,10 @@ public class TiredExecutor {
 
     public void shutdown() throws InterruptedException {
         // TODO
+        synchronized(this) {
+            if (isShutdown) return;
+            isShutdown = true;
+        }
         for (TiredThread worker : workers) {
             worker.shutdown();
         }
