@@ -71,14 +71,12 @@ public class TiredExecutor {
     public void shutdown() throws InterruptedException {
         // TODO
         synchronized(this) {
-            if (isShutdown) return;
-            isShutdown = true;
-        }
-        for (TiredThread worker : workers) {
-            worker.shutdown();
-        }
-        for (TiredThread worker : workers) {
-            worker.join();
+            for (TiredThread worker : workers) {
+                worker.shutdown();
+            }
+            for (TiredThread worker : workers) {
+                worker.join();
+            }
         }
     }
 

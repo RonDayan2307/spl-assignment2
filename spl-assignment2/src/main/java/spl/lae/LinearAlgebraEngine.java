@@ -132,13 +132,8 @@ public class LinearAlgebraEngine {
         return executor.getWorkerReport();
     }
 
-
-// shutdown executor - to be accessed from main
-    public void shutdown() {
-        try {
-            executor.shutdown();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    // ret executor so main can shut it down
+    public TiredExecutor getExecutor() {
+        return this.executor;
     }
 }

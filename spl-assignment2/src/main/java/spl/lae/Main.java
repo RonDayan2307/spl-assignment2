@@ -42,9 +42,9 @@ public class Main {
             }
             e.printStackTrace();
         } finally {
-            if (engine != null) {
+            if (engine != null && engine.getExecutor() != null) {
                 try {
-                    engine.shutdown();
+                    engine.getExecutor().shutdown();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
