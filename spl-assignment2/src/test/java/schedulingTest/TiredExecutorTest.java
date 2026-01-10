@@ -1,8 +1,5 @@
 package scheduling;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,6 +8,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 public class TiredExecutorTest {
 
@@ -38,19 +42,16 @@ public class TiredExecutorTest {
         // 3. Mid Pass: 10 threads
         TiredExecutor pool = new TiredExecutor(10);
         String report = pool.getWorkerReport();
-        // Check rudimentary string presence
         assertTrue(report.contains("Worker 9")); 
         pool.shutdown();
     }
 
     @Test
     public void testConstructor_Mid_Fail() {
-        // 4. Mid Fail: Zero threads? 
-        // Logic: Array size 0. Creating 0 workers. 
-        // submit() will block forever because idleMinHeap is empty.
+        // 4. Mid Fail: Zero threads
+        // Logic: submit() blocks forever if pool size is 0 because minHeap is empty.
         TiredExecutor pool = new TiredExecutor(0);
         
-        // This should timeout or block if we try to use it
         Thread t = new Thread(() -> pool.submit(() -> {}));
         t.start();
         try {
@@ -65,7 +66,7 @@ public class TiredExecutorTest {
     public void testConstructor_Large_Pass() throws InterruptedException {
         // 5. Large Pass: 100 threads creation stress
         TiredExecutor pool = new TiredExecutor(100);
-        pool.shutdown(); // Should close cleanly
+        pool.shutdown();
     }
 
     // ==========================================
@@ -84,12 +85,12 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: Submit null (Task wrapper runs, calls null.run(), throws NPE inside worker)
-        // Executor should remain stable.
+        // 2. Small Fail: Submit null 
+        // (This causes NPE in the worker thread, which prints an error but keeps running)
         TiredExecutor pool = new TiredExecutor(1);
-        pool.submit(null); // Will cause exception in worker thread, printed to stderr
+        pool.submit(null); 
         
-        // Pool should still work
+        // Ensure pool is still alive and working
         CountDownLatch latch = new CountDownLatch(1);
         pool.submit(latch::countDown);
         assertTrue(latch.await(1, TimeUnit.SECONDS));
@@ -98,7 +99,7 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: Submit more tasks than threads (Queueing logic)
+        // 3. Mid Pass: Submit more tasks than threads
         TiredExecutor pool = new TiredExecutor(2);
         CountDownLatch latch = new CountDownLatch(5);
         
@@ -121,7 +122,6 @@ public class TiredExecutorTest {
         
         pool.submit(() -> { throw new RuntimeException("Crash!"); });
         
-        // Worker should return to heap. If not, next submit blocks forever.
         CountDownLatch latch = new CountDownLatch(1);
         pool.submit(latch::countDown);
         
@@ -132,7 +132,7 @@ public class TiredExecutorTest {
     @Test
     public void testSubmit_Large_Pass() throws InterruptedException {
         // 5. Large Pass: High throughput (1000 tasks)
-        TiredExecutor pool = new TiredExecutor(4); // 4 threads
+        TiredExecutor pool = new TiredExecutor(4);
         int count = 1000;
         CountDownLatch latch = new CountDownLatch(count);
         
@@ -154,7 +154,6 @@ public class TiredExecutorTest {
         TiredExecutor pool = new TiredExecutor(2);
         List<Runnable> tasks = Collections.singletonList(() -> {});
         pool.submitAll(tasks);
-        // If we reach here, it passed (wait worked)
         pool.shutdown();
     }
 
@@ -164,11 +163,9 @@ public class TiredExecutorTest {
         TiredExecutor pool = new TiredExecutor(1);
         List<Runnable> tasks = new ArrayList<>();
         tasks.add(() -> {});
-        tasks.add(null); // Will crash worker
+        tasks.add(null); 
         tasks.add(() -> {});
 
-        // Should complete all (even the crashing one returns worker to pool)
-        // If the null task crashed the worker without return, this would hang.
         assertDoesNotThrow(() -> pool.submitAll(tasks));
         pool.shutdown();
     }
@@ -176,7 +173,6 @@ public class TiredExecutorTest {
     @Test
     public void testSubmitAll_Mid_Pass() throws InterruptedException {
         // 3. Mid Pass: 20 tasks, 4 threads. 
-        // Ensure blocking until ALL finished.
         TiredExecutor pool = new TiredExecutor(4);
         AtomicInteger counter = new AtomicInteger(0);
         List<Runnable> tasks = new ArrayList<>();
@@ -189,8 +185,7 @@ public class TiredExecutorTest {
         }
         
         pool.submitAll(tasks);
-        
-        assertEquals(20, counter.get(), "SubmitAll returned before all tasks finished");
+        assertEquals(20, counter.get());
         pool.shutdown();
     }
 
@@ -199,7 +194,6 @@ public class TiredExecutorTest {
         // 4. Mid Fail: Empty List
         TiredExecutor pool = new TiredExecutor(1);
         pool.submitAll(Collections.emptyList());
-        // Should return immediately without hanging
         pool.shutdown();
     }
 
@@ -214,7 +208,7 @@ public class TiredExecutorTest {
         pool.submitAll(tasks);
         long end = System.currentTimeMillis();
         
-        assertTrue((end - start) < 5000); // Sanity check
+        assertTrue((end - start) < 5000); 
         pool.shutdown();
     }
 
@@ -227,17 +221,20 @@ public class TiredExecutorTest {
         // 1. Small Pass
         TiredExecutor pool = new TiredExecutor(1);
         pool.shutdown();
-        // No exception thrown
     }
 
     @Test
-    public void testShutdown_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: Calling shutdown twice?
+    public void testShutdown_Small_Fail() {
+        // 2. Small Fail: Interrupt thread BEFORE shutdown.
+        // shutdown() calls join(), which MUST throw InterruptedException if interrupted.
         TiredExecutor pool = new TiredExecutor(1);
-        pool.shutdown();
-        assertThrows(IllegalStateException.class, pool::shutdown); 
-        // Why? Because workers are dead. queue is full or closed. 
-        // worker.shutdown() puts poison pill. If worker dead, put might fail or queue logic inside worker throws.
+        
+        Thread.currentThread().interrupt(); // Set interrupt flag manually
+        
+        assertThrows(InterruptedException.class, pool::shutdown);
+        
+        // Clear flag to avoid polluting other tests
+        Thread.interrupted(); 
     }
 
     @Test
@@ -249,7 +246,7 @@ public class TiredExecutorTest {
         });
         
         long start = System.currentTimeMillis();
-        pool.shutdown(); // Should wait for join
+        pool.shutdown(); 
         long end = System.currentTimeMillis();
         
         assertTrue((end - start) >= 100); // Must have waited for task
@@ -257,11 +254,11 @@ public class TiredExecutorTest {
 
     @Test
     public void testShutdown_Mid_Fail() throws InterruptedException {
-        // 4. Mid Fail: Interruption during shutdown?
-        // Hard to simulate cleanly in unit test without mocking Thread.currentThread()
-        // We will test logic: Shutdown empty pool
+        // 4. Mid Fail: Double Shutdown (Idempotency)
+        // With your fix, this should NO LONGER throw an exception.
         TiredExecutor pool = new TiredExecutor(5);
         pool.shutdown();
+        assertDoesNotThrow(pool::shutdown);
     }
 
     @Test
@@ -269,7 +266,7 @@ public class TiredExecutorTest {
         // 5. Large Pass
         TiredExecutor pool = new TiredExecutor(50);
         for(int i=0; i<100; i++) pool.submit(() -> {});
-        pool.shutdown(); // Should finish pending and close
+        pool.shutdown(); 
     }
 
     // ==========================================
@@ -288,7 +285,7 @@ public class TiredExecutorTest {
 
     @Test
     public void testReport_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: Ensure it doesn't return null even if empty (though ctor prevents true empty)
+        // 2. Small Fail: Ensure valid string even if no work done
         TiredExecutor pool = new TiredExecutor(1);
         assertNotNull(pool.getWorkerReport());
         pool.shutdown();
@@ -304,20 +301,17 @@ public class TiredExecutorTest {
         
         String r = pool.getWorkerReport();
         assertTrue(r.contains("Used:"));
-        // Check rudimentary statistic presence (Used > 0)
-        // It's hard to parse exact string without regex, but we check non-empty values
         pool.shutdown();
     }
 
     @Test
     public void testReport_Mid_Fail() {
-        // 4. Mid Fail: N/A for string getter. 
-        // We test stability during heavy load?
+        // 4. Mid Fail: Concurrent access to report
         TiredExecutor pool = new TiredExecutor(5);
         AtomicBoolean stop = new AtomicBoolean(false);
         
         Thread logger = new Thread(() -> {
-            while(!stop.get()) pool.getWorkerReport(); // Spam report
+            while(!stop.get()) pool.getWorkerReport();
         });
         logger.start();
         
@@ -331,10 +325,6 @@ public class TiredExecutorTest {
         // 5. Large Pass: 100 threads report
         TiredExecutor pool = new TiredExecutor(100);
         String r = pool.getWorkerReport();
-        // Should contain 100 lines of workers
-        int count = r.split("Worker").length - 1; // "Worker Report" + "Worker X..."
-        // Note: Title contains "Worker", so total matches = 1 + 100 = 101?
-        // Let's just check length is substantial
         assertTrue(r.length() > 1000);
         pool.shutdown();
     }
