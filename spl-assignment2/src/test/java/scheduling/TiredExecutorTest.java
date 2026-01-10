@@ -18,13 +18,10 @@ import org.junit.jupiter.api.Test;
 
 public class TiredExecutorTest {
 
-    // ==========================================
-    // 1. CONSTRUCTOR TESTS
-    // ==========================================
+    // CONSTRUCTOR TESTS
 
     @Test
     public void testConstructor_Small_Pass() throws InterruptedException {
-        // 1. Small Pass: Create 1 thread
         TiredExecutor pool = new TiredExecutor(1);
         String report = pool.getWorkerReport();
         assertTrue(report.contains("Worker 0"));
@@ -33,13 +30,11 @@ public class TiredExecutorTest {
 
     @Test
     public void testConstructor_Small_Fail() {
-        // 2. Small Fail: Negative threads (Java array throws NegativeArraySizeException)
         assertThrows(NegativeArraySizeException.class, () -> new TiredExecutor(-1));
     }
 
     @Test
     public void testConstructor_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: 10 threads
         TiredExecutor pool = new TiredExecutor(10);
         String report = pool.getWorkerReport();
         assertTrue(report.contains("Worker 9")); 
@@ -48,8 +43,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testConstructor_Mid_Fail() {
-        // 4. Mid Fail: Zero threads
-        // Logic: submit() blocks forever if pool size is 0 because minHeap is empty.
         TiredExecutor pool = new TiredExecutor(0);
         
         Thread t = new Thread(() -> pool.submit(() -> {}));
@@ -59,23 +52,19 @@ public class TiredExecutorTest {
         } catch (InterruptedException e) {}
         
         assertTrue(t.isAlive(), "Submit should block forever on 0-thread pool");
-        t.interrupt(); // Clean up
+        t.interrupt();
     }
 
     @Test
     public void testConstructor_Large_Pass() throws InterruptedException {
-        // 5. Large Pass: 100 threads creation stress
         TiredExecutor pool = new TiredExecutor(100);
         pool.shutdown();
     }
 
-    // ==========================================
-    // 2. SUBMIT TESTS
-    // ==========================================
+    // SUBMIT TESTS
 
     @Test
     public void testSubmit_Small_Pass() throws InterruptedException {
-        // 1. Small Pass: Run 1 task
         TiredExecutor pool = new TiredExecutor(1);
         CountDownLatch latch = new CountDownLatch(1);
         pool.submit(latch::countDown);
@@ -85,12 +74,9 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: Submit null 
-        // (This causes NPE in the worker thread, which prints an error but keeps running)
         TiredExecutor pool = new TiredExecutor(1);
         pool.submit(null); 
         
-        // Ensure pool is still alive and working
         CountDownLatch latch = new CountDownLatch(1);
         pool.submit(latch::countDown);
         assertTrue(latch.await(1, TimeUnit.SECONDS));
@@ -99,7 +85,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: Submit more tasks than threads
         TiredExecutor pool = new TiredExecutor(2);
         CountDownLatch latch = new CountDownLatch(5);
         
@@ -116,8 +101,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Mid_Fail() throws InterruptedException {
-        // 4. Mid Fail: Submit Task that throws exception
-        // Ensure pool recycles the worker even if task crashes
         TiredExecutor pool = new TiredExecutor(1);
         
         pool.submit(() -> { throw new RuntimeException("Crash!"); });
@@ -131,7 +114,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmit_Large_Pass() throws InterruptedException {
-        // 5. Large Pass: High throughput (1000 tasks)
         TiredExecutor pool = new TiredExecutor(4);
         int count = 1000;
         CountDownLatch latch = new CountDownLatch(count);
@@ -144,13 +126,10 @@ public class TiredExecutorTest {
         pool.shutdown();
     }
 
-    // ==========================================
-    // 3. SUBMIT ALL TESTS
-    // ==========================================
+    // SUBMIT ALL TESTS
 
     @Test
     public void testSubmitAll_Small_Pass() throws InterruptedException {
-        // 1. Small Pass
         TiredExecutor pool = new TiredExecutor(2);
         List<Runnable> tasks = Collections.singletonList(() -> {});
         pool.submitAll(tasks);
@@ -159,7 +138,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmitAll_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: List contains null
         TiredExecutor pool = new TiredExecutor(1);
         List<Runnable> tasks = new ArrayList<>();
         tasks.add(() -> {});
@@ -172,7 +150,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmitAll_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: 20 tasks, 4 threads. 
         TiredExecutor pool = new TiredExecutor(4);
         AtomicInteger counter = new AtomicInteger(0);
         List<Runnable> tasks = new ArrayList<>();
@@ -191,7 +168,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmitAll_Mid_Fail() throws InterruptedException {
-        // 4. Mid Fail: Empty List
         TiredExecutor pool = new TiredExecutor(1);
         pool.submitAll(Collections.emptyList());
         pool.shutdown();
@@ -199,7 +175,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testSubmitAll_Large_Pass() throws InterruptedException {
-        // 5. Large Pass: 500 tasks
         TiredExecutor pool = new TiredExecutor(10);
         List<Runnable> tasks = new ArrayList<>();
         for(int i=0; i<500; i++) tasks.add(() -> {});
@@ -212,34 +187,27 @@ public class TiredExecutorTest {
         pool.shutdown();
     }
 
-    // ==========================================
-    // 4. SHUTDOWN TESTS
-    // ==========================================
+    // SHUTDOWN TESTS
 
     @Test
     public void testShutdown_Small_Pass() throws InterruptedException {
-        // 1. Small Pass
         TiredExecutor pool = new TiredExecutor(1);
         pool.shutdown();
     }
 
     @Test
     public void testShutdown_Small_Fail() {
-        // 2. Small Fail: Interrupt thread BEFORE shutdown.
-        // shutdown() calls join(), which MUST throw InterruptedException if interrupted.
         TiredExecutor pool = new TiredExecutor(1);
         
         Thread.currentThread().interrupt(); // Set interrupt flag manually
         
         assertThrows(InterruptedException.class, pool::shutdown);
         
-        // Clear flag to avoid polluting other tests
         Thread.interrupted(); 
     }
 
     @Test
     public void testShutdown_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: Shutdown while tasks are running
         TiredExecutor pool = new TiredExecutor(2);
         pool.submit(() -> {
             try { Thread.sleep(100); } catch (Exception e) {}
@@ -249,13 +217,11 @@ public class TiredExecutorTest {
         pool.shutdown(); 
         long end = System.currentTimeMillis();
         
-        assertTrue((end - start) >= 100); // Must have waited for task
+        assertTrue((end - start) >= 100);
     }
 
     @Test
     public void testShutdown_Mid_Fail() throws InterruptedException {
-        // 4. Mid Fail: Double Shutdown (Idempotency)
-        // With your fix, this should NO LONGER throw an exception.
         TiredExecutor pool = new TiredExecutor(5);
         pool.shutdown();
         assertDoesNotThrow(pool::shutdown);
@@ -263,19 +229,15 @@ public class TiredExecutorTest {
 
     @Test
     public void testShutdown_Large_Pass() throws InterruptedException {
-        // 5. Large Pass
         TiredExecutor pool = new TiredExecutor(50);
         for(int i=0; i<100; i++) pool.submit(() -> {});
         pool.shutdown(); 
     }
 
-    // ==========================================
-    // 5. GET WORKER REPORT TESTS
-    // ==========================================
+    // GET WORKER REPORT TESTS
 
     @Test
     public void testReport_Small_Pass() throws InterruptedException {
-        // 1. Small Pass
         TiredExecutor pool = new TiredExecutor(1);
         String r = pool.getWorkerReport();
         assertNotNull(r);
@@ -285,7 +247,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testReport_Small_Fail() throws InterruptedException {
-        // 2. Small Fail: Ensure valid string even if no work done
         TiredExecutor pool = new TiredExecutor(1);
         assertNotNull(pool.getWorkerReport());
         pool.shutdown();
@@ -293,7 +254,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testReport_Mid_Pass() throws InterruptedException {
-        // 3. Mid Pass: Check content after work
         TiredExecutor pool = new TiredExecutor(1);
         pool.submitAll(Collections.singletonList(() -> {
             try { Thread.sleep(50); } catch(Exception e){}
@@ -306,7 +266,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testReport_Mid_Fail() {
-        // 4. Mid Fail: Concurrent access to report
         TiredExecutor pool = new TiredExecutor(5);
         AtomicBoolean stop = new AtomicBoolean(false);
         
@@ -322,7 +281,6 @@ public class TiredExecutorTest {
 
     @Test
     public void testReport_Large_Pass() throws InterruptedException {
-        // 5. Large Pass: 100 threads report
         TiredExecutor pool = new TiredExecutor(100);
         String r = pool.getWorkerReport();
         assertTrue(r.length() > 1000);

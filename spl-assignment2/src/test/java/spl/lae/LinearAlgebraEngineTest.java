@@ -34,9 +34,7 @@ public class LinearAlgebraEngineTest {
         }
     }
 
-    // ==========================================
     // HELPER: REFLECTION FOR PRIVATE STATE
-    // ==========================================
     private void injectLeftMatrix(double[][] data) throws Exception {
         Field f = LinearAlgebraEngine.class.getDeclaredField("leftMatrix");
         f.setAccessible(true);
@@ -53,9 +51,7 @@ public class LinearAlgebraEngineTest {
         m.loadRowMajor(data);
     }
 
-    // ==========================================
-    // 1. CONSTRUCTOR TESTS
-    // ==========================================
+    // CONSTRUCTOR TESTS
 
     @Test
     public void testConstructor_Small_Pass() {
@@ -87,9 +83,7 @@ public class LinearAlgebraEngineTest {
         lae.shutdown();
     }
 
-    // ==========================================
-    // 2. CREATE ADD TASKS TESTS
-    // ==========================================
+    // CREATE ADD TASKS TESTS
 
     @Test
     public void testCreateAddTasks_Small_Pass() throws Exception {
@@ -130,9 +124,7 @@ public class LinearAlgebraEngineTest {
         assertEquals(1000, tasks.size());
     }
 
-    // ==========================================
-    // 3. CREATE MULTIPLY TASKS TESTS
-    // ==========================================
+    // CREATE MULTIPLY TASKS TESTS
 
     @Test
     public void testCreateMultiplyTasks_Small_Pass() throws Exception {
@@ -172,9 +164,7 @@ public class LinearAlgebraEngineTest {
         assertEquals(500, tasks.size());
     }
 
-    // ==========================================
-    // 4. CREATE NEGATE TASKS TESTS
-    // ==========================================
+    // CREATE NEGATE TASKS TESTS
 
     @Test
     public void testCreateNegateTasks_Small_Pass() throws Exception {
@@ -210,9 +200,7 @@ public class LinearAlgebraEngineTest {
         assertEquals(1000, engine.createNegateTasks().size());
     }
 
-    // ==========================================
-    // 5. CREATE TRANSPOSE TASKS TESTS
-    // ==========================================
+    // CREATE TRANSPOSE TASKS TESTS
 
     @Test
     public void testCreateTransposeTasks_Small_Pass() throws Exception {
@@ -244,9 +232,7 @@ public class LinearAlgebraEngineTest {
         assertEquals(1000, engine.createTransposeTasks().size());
     }
 
-    // ==========================================
-    // 6. GET WORKER REPORT TESTS
-    // ==========================================
+    // GET WORKER REPORT TESTS
 
     @Test
     public void testGetWorkerReport_Small_Pass() {
@@ -275,9 +261,7 @@ public class LinearAlgebraEngineTest {
         big.shutdown();
     }
 
-    // ==========================================
-    // 7. SHUTDOWN TESTS
-    // ==========================================
+    // SHUTDOWN TESTS
 
     @Test
     public void testShutdown_Small_Pass() {
@@ -307,108 +291,61 @@ public class LinearAlgebraEngineTest {
         e.shutdown();
     }
 
-    // ==========================================
-    // 8. RUN & LOAD_AND_COMPUTE TESTS (MOCKING)
-    // ==========================================
-
-    /**
-     * MOCK NODE IMPLEMENTATION for Testing
-     */
-    static class MockComputationNode extends ComputationNode {
-        private ComputationNode nextResolvable;
-        private ComputationNodeType type;
-        private List<ComputationNode> children;
-        private double[][] result;
-        private double[][] matrixData;
-
-        public MockComputationNode(ComputationNodeType type, List<ComputationNode> children, double[][] matrixData) {
-            super(type, children); 
-            this.type = type;
-            this.children = children;
-            this.matrixData = matrixData;
-        }
-
-        public void setNextResolvable(ComputationNode n) { this.nextResolvable = n; }
-
-        @Override public ComputationNode findResolvable() { 
-            ComputationNode temp = nextResolvable;
-            nextResolvable = null; 
-            return temp; 
-        }
-        @Override public List<ComputationNode> getChildren() { return children; }
-        @Override public ComputationNodeType getNodeType() { return type; }
-        @Override public double[][] getMatrix() { return matrixData; }
-        @Override public void resolve(double[][] res) { this.result = res; }
-        
-        public double[][] getResult() { return result; }
-    }
+    // RUN & LOAD_AND_COMPUTE TESTS
 
     @Test
     public void testRun_Small_Pass() {
-        // 1. Small Pass: Simple 1x1 Negate
-        double[][] data = {{1.0}};
-        // Use MATRIX for leaf node type
-        MockComputationNode leaf = new MockComputationNode(ComputationNodeType.MATRIX, null, data);
-        MockComputationNode root = new MockComputationNode(ComputationNodeType.NEGATE, Arrays.asList(leaf), null);
+        ComputationNode leaf = new ComputationNode(new double[][]{{1.0}});
+        ComputationNode root = new ComputationNode(ComputationNodeType.NEGATE, Arrays.asList(leaf));
         
-        root.setNextResolvable(root);
         engine.run(root);
         
-        assertNotNull(root.getResult());
-        assertEquals(-1.0, root.getResult()[0][0]);
+        assertNotNull(root.getMatrix());
+        assertEquals(-1.0, root.getMatrix()[0][0]);
     }
 
     @Test
     public void testRun_Small_Fail() {
-        // 2. Small Fail: Operation mismatch (Unknown Op)
-        // Passing null as type to the ROOT node triggers "unknown operation"
-        MockComputationNode badNode = new MockComputationNode(null, Arrays.asList(new MockComputationNode(ComputationNodeType.MATRIX, null, new double[][]{{1}})), null);
-        badNode.setNextResolvable(badNode);
+        ComputationNode leaf = new ComputationNode(new double[][]{{1}});
+        ComputationNode badNode = new ComputationNode((ComputationNodeType)null, Arrays.asList(leaf));
         
         assertThrows(IllegalArgumentException.class, () -> engine.run(badNode));
     }
 
     @Test
     public void testRun_Mid_Pass() {
-        // 3. Mid Pass: 2x2 Transpose
         double[][] data = {{1, 2}, {3, 4}};
-        MockComputationNode leaf = new MockComputationNode(ComputationNodeType.MATRIX, null, data);
-        MockComputationNode root = new MockComputationNode(ComputationNodeType.TRANSPOSE, Arrays.asList(leaf), null);
+        ComputationNode leaf = new ComputationNode(data);
+        ComputationNode root = new ComputationNode(ComputationNodeType.TRANSPOSE, Arrays.asList(leaf));
         
-        root.setNextResolvable(root);
         engine.run(root);
         
-        double[][] res = root.getResult();
+        double[][] res = root.getMatrix();
         assertEquals(1.0, res[0][0]);
         assertEquals(3.0, res[0][1]);
     }
 
     @Test
     public void testRun_Mid_Fail() {
-        // 4. Mid Fail: Add with mismatched dimensions
         double[][] d1 = {{1}};
         double[][] d2 = {{1, 2}};
-        MockComputationNode l1 = new MockComputationNode(ComputationNodeType.MATRIX, null, d1);
-        MockComputationNode l2 = new MockComputationNode(ComputationNodeType.MATRIX, null, d2);
-        MockComputationNode root = new MockComputationNode(ComputationNodeType.ADD, Arrays.asList(l1, l2), null);
-        
-        root.setNextResolvable(root);
+        ComputationNode l1 = new ComputationNode(d1);
+        ComputationNode l2 = new ComputationNode(d2);
+        ComputationNode root = new ComputationNode(ComputationNodeType.ADD, Arrays.asList(l1, l2));
         
         assertThrows(IllegalArgumentException.class, () -> engine.run(root));
     }
 
     @Test
     public void testRun_Large_Pass() {
-        // 5. Large Pass: Add 100x100
         double[][] data = new double[100][100];
-        MockComputationNode l1 = new MockComputationNode(ComputationNodeType.MATRIX, null, data);
-        MockComputationNode l2 = new MockComputationNode(ComputationNodeType.MATRIX, null, data);
-        MockComputationNode root = new MockComputationNode(ComputationNodeType.ADD, Arrays.asList(l1, l2), null);
+        ComputationNode l1 = new ComputationNode(data);
+        ComputationNode l2 = new ComputationNode(data);
+        ComputationNode root = new ComputationNode(ComputationNodeType.ADD, Arrays.asList(l1, l2));
         
-        root.setNextResolvable(root);
         engine.run(root);
         
-        assertNotNull(root.getResult());
-        assertEquals(100, root.getResult().length);
+        assertNotNull(root.getMatrix());
+        assertEquals(100, root.getMatrix().length);
     }
 }

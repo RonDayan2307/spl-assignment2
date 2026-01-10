@@ -40,7 +40,6 @@ public class MainTest {
     public void testMain_Small_Pass() throws IOException {
         Path inputFile = tempDir.resolve("input_small.json");
         Path outputFile = tempDir.resolve("output_small.json");
-        // Simple Identity Matrix
         String jsonContent = "[[1.0, 2.0], [3.0, 4.0]]"; 
         Files.writeString(inputFile, jsonContent);
 
@@ -70,7 +69,6 @@ public class MainTest {
         Path inputFile = tempDir.resolve("input_mid.json");
         Path outputFile = tempDir.resolve("output_mid.json");
         
-        // Input: Transpose (Using "T")
         String jsonInput = "{" +
                 "\"operator\": \"T\"," + 
                 "\"operands\": [" +
@@ -109,7 +107,6 @@ public class MainTest {
         Path inputFile = tempDir.resolve("input_error.json");
         Path outputFile = tempDir.resolve("output_error.json");
 
-        // Create Invalid Input: Add 1x1 to 1x2 (Dimension Mismatch) Using "+"
         String jsonInput = "{" +
                 "\"operator\": \"+\"," + 
                 "\"operands\": [" +

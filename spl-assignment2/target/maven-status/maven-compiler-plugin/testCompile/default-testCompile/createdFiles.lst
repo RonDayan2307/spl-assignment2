@@ -1,7 +1,6 @@
-spl/lae/LinearAlgebraEngineTest$MockComputationNode.class
-memory/SharedMatrixTest.class
-scheduling/TiredExecutorTest.class
 memory/SharedVectorTest.class
 spl/lae/LinearAlgebraEngineTest.class
 spl/lae/MainTest.class
+memory/SharedMatrixTest.class
+scheduling/TiredExecutorTest.class
 scheduling/TiredThreadTest.class
