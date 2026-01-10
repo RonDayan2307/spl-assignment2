@@ -29,6 +29,7 @@ public class Main {
         try {
             InputParser parser = new InputParser();
             ComputationNode root = parser.parse(inputPath);
+            root.associativeNesting();
             engine = new LinearAlgebraEngine(numThreads);
             ComputationNode resultNode = engine.run(root);
             double[][] resultMatrix = resultNode.getMatrix();
