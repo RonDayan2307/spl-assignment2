@@ -1,2 +1,2 @@
-laeTest/AlgebraLETest.class
-memoryTest/SharedVectorTest.class
+memory/SharedVectorTest.class
+memory/SharedMatrixTest.class
