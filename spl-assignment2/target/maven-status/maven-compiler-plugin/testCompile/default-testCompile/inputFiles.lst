@@ -1,5 +1,6 @@
-/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/memoryTest/SharedMatrixTest.java
-/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/schedulingTest/TiredExecutorTest.java
-/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/splTest/laeTest/LinearAlgebraEngineTest.java
-/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/memoryTest/SharedVectorTest.java
-/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/schedulingTest/TiredThreadTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/spl/lae/LinearAlgebraEngineTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/spl/lae/MainTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/memory/SharedVectorTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/memory/SharedMatrixTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/scheduling/TiredExecutorTest.java
+/Users/ronday/Desktop/SPL/spl-assignment2/spl-assignment2/src/test/java/scheduling/TiredThreadTest.java

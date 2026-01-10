@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="memory.SharedVectorTest" time="0.025" tests="35" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="spl.lae.LinearAlgebraEngineTest" time="0.067" tests="40" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -58,39 +58,44 @@
     <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testAdd_Large_Pass" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testTranspose_Mid_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testTranspose_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testDot_Small_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testDot_Small_Pass" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testLength_Mid_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testLength_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testNegate_Small_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testNegate_Small_Pass" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testVecMatMul_Mid_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testVecMatMul_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testDot_Large_Pass" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testNegate_Mid_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testNegate_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testTranspose_Small_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testTranspose_Small_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testDot_Mid_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testDot_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testNegate_Large_Pass" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testGet_Small_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testGet_Small_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testLength_Small_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testLength_Small_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testVecMatMul_Small_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testVecMatMul_Small_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testTranspose_Large_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testGet_Large_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testLength_Large_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testAdd_Mid_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testAdd_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testVecMatMul_Large_Pass" classname="memory.SharedVectorTest" time="0.008"/>
-  <testcase name="testGet_Mid_Fail" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testGet_Mid_Pass" classname="memory.SharedVectorTest" time="0.0"/>
-  <testcase name="testAdd_Small_Fail" classname="memory.SharedVectorTest" time="0.001"/>
-  <testcase name="testAdd_Small_Pass" classname="memory.SharedVectorTest" time="0.0"/>
+  <testcase name="testGetWorkerReport_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testGetWorkerReport_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testRun_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.002"/>
+  <testcase name="testRun_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.002"/>
+  <testcase name="testConstructor_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.01"/>
+  <testcase name="testCreateNegateTasks_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.002"/>
+  <testcase name="testCreateTransposeTasks_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.002"/>
+  <testcase name="testCreateAddTasks_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateAddTasks_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testRun_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.004"/>
+  <testcase name="testCreateAddTasks_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testGetWorkerReport_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testGetWorkerReport_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateMultiplyTasks_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateMultiplyTasks_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testShutdown_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testShutdown_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testShutdown_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testShutdown_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateNegateTasks_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateNegateTasks_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testCreateMultiplyTasks_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testCreateMultiplyTasks_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testGetWorkerReport_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.007"/>
+  <testcase name="testConstructor_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testConstructor_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.002"/>
+  <testcase name="testShutdown_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.003"/>
+  <testcase name="testRun_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testRun_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testCreateAddTasks_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateAddTasks_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateMultiplyTasks_Large_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateTransposeTasks_Mid_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateTransposeTasks_Mid_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testConstructor_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testConstructor_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateNegateTasks_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testCreateNegateTasks_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
+  <testcase name="testCreateTransposeTasks_Small_Fail" classname="spl.lae.LinearAlgebraEngineTest" time="0.001"/>
+  <testcase name="testCreateTransposeTasks_Small_Pass" classname="spl.lae.LinearAlgebraEngineTest" time="0.0"/>
 </testsuite>
