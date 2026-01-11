@@ -58,7 +58,7 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
     public void newTask(Runnable task) {
        // TODO
        // Inserts element into this queue immediately if possible. returns true upon success and false if no space is currently available.
-       if (!handoff.offer(task)) {
+        if (!handoff.offer(task)) {
             throw new IllegalStateException("Thread #" + id + " is occupied.");
         }
     }
@@ -69,7 +69,7 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
      */
     public void shutdown() {
        // TODO
-       try {
+        try {
             //Inserts the specified element into this queue, waiting if necessary for space to become available.
             handoff.put(POISON_PILL);
         } catch (InterruptedException e) {
@@ -80,7 +80,7 @@ public class TiredThread extends Thread implements Comparable<TiredThread> {
     @Override
     public void run() {
        // TODO
-       while (alive.get()) {
+        while (alive.get()) {
             try {
                 Runnable task = handoff.take();
                 timeIdle.getAndAdd(System.nanoTime() - idleStartTime.get());

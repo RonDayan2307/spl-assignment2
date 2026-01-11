@@ -25,24 +25,58 @@ public class TiredExecutor {
     public void submit(Runnable task) {
         // TODO
         try {
-            TiredThread worker = idleMinHeap.take();
+            TiredThread selectedWorker = null;
+
+            synchronized (this) {
+                while (true) {
+                    if (workers.length < 2) {
+                        while (idleMinHeap.isEmpty()) {
+                            this.wait();
+                        }
+                        selectedWorker = idleMinHeap.poll();
+                        break;
+                    }
+
+                    if (idleMinHeap.size() == workers.length) {
+                        selectedWorker = idleMinHeap.poll();
+                        break;
+                    }
+
+                    double totalFatigue = 0;
+                    for (TiredThread w : workers) {
+                        totalFatigue += w.getFatigue();
+                    }
+                    double averageFatigue = totalFatigue / workers.length;
+                    TiredThread bestAvailable = idleMinHeap.peek();
+
+                    if (bestAvailable == null) {
+                        this.wait();
+                    } else if (bestAvailable.getFatigue() > averageFatigue) {
+                        this.wait();
+                    } else {
+                        selectedWorker = idleMinHeap.poll();
+                        break;
+                    }
+                }
+            }
+
             inFlight.incrementAndGet();
+            final TiredThread finalWorker = selectedWorker;
 
             Runnable wrapper = () -> {
                 try {
                     task.run();
                 } finally {
                     inFlight.decrementAndGet();
-                    idleMinHeap.add(worker);
-                    if (inFlight.get() == 0) {
-                        synchronized (this) {
-                            this.notifyAll();
-                        }
+                    synchronized (this) {
+                        idleMinHeap.add(finalWorker);
+                        this.notifyAll(); 
                     }
                 }
             };
 
-            worker.newTask(wrapper);
+            selectedWorker.newTask(wrapper);
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
