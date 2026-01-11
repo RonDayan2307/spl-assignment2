@@ -9,8 +9,6 @@ public class TiredExecutor {
     private final PriorityBlockingQueue<TiredThread> idleMinHeap = new PriorityBlockingQueue<>();
     private final AtomicInteger inFlight = new AtomicInteger(0);
 
-    private volatile boolean isShutdown = false;
-
     public TiredExecutor(int numThreads) {
         // TODO
         // creating workers
@@ -82,8 +80,8 @@ public class TiredExecutor {
         // TODO: return readable statistics for each worker
         String report = "Worker Report:\n";
         for (TiredThread worker : this.workers) {
-            report = report + "Worker " + worker.getWorkerId() + "Used: " + worker.getTimeUsed() + "Idle: " + 
-                     worker.getTimeIdle() + "Used: " + worker.getFatigue() + "\n";
+            report = report + "Worker " + worker.getWorkerId() + " Used: " + worker.getTimeUsed() + " Idle: " + 
+                     worker.getTimeIdle() + " Fatigue: " + worker.getFatigue() + "\n";
         }
         return report;
     }

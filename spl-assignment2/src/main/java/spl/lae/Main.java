@@ -9,16 +9,16 @@ import parser.OutputWriter;
 public class Main {
     public static void main(String[] args) throws IOException {
         if (args.length != 3) {
-            System.err.println("Usage: java spl.lae.Main <input_file> <output_file> <num_threads>");
+            System.err.println("Usage: java spl.lae.Main <num_threads> <input_file> <output_file>");
             return;
         }
 
-        String inputPath = args[0];
-        String outputPath = args[1];
         int numThreads = 0;
+        String inputPath = args[1];
+        String outputPath = args[2];
 
         try {
-            numThreads = Integer.parseInt(args[2]);
+            numThreads = Integer.parseInt(args[0]);
         } catch (Exception e) {
             System.err.println("number of threads must be an integer.");
             return;

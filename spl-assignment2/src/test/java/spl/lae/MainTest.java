@@ -43,7 +43,7 @@ public class MainTest {
         String jsonContent = "[[1.0, 2.0], [3.0, 4.0]]"; 
         Files.writeString(inputFile, jsonContent);
 
-        String[] args = { inputFile.toString(), outputFile.toString(), "2" };
+        String[] args = {"2", inputFile.toString(), outputFile.toString()};
         Main.main(args);
 
         assertTrue(Files.exists(outputFile), "Output file should be created");
@@ -77,7 +77,7 @@ public class MainTest {
                 "}";
         Files.writeString(inputFile, jsonInput);
 
-        String[] args = { inputFile.toString(), outputFile.toString(), "4" };
+        String[] args = {"4",  inputFile.toString(), outputFile.toString()};
         Main.main(args);
 
         String stdout = outContent.toString();
@@ -116,7 +116,7 @@ public class MainTest {
                 "}";
         Files.writeString(inputFile, jsonInput);
 
-        String[] args = { inputFile.toString(), outputFile.toString(), "4" };
+        String[] args = {"4",  inputFile.toString(), outputFile.toString()};
         Main.main(args);
 
         assertTrue(Files.exists(outputFile), "Output file should exist even if calculation failed");
